@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="devive_list_bg">#e1dced</color>
+    <color name="search_device_btn_bg">#8572b7</color>
+    <color name="device_item_bg">#ffffff</color>
+    <color name="msg_left_bg">#f0eef6</color>
+    <color name="msg_right_bg">#c3b9db</color>
+    <color name="chat_bg">#f0edf6</color>
+</resources>

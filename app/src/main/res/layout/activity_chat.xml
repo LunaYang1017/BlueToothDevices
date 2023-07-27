@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/activity_chat"
+    android:background="@color/chat_bg"
+    android:orientation="vertical">
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/msg_recycler_view"
+        android:layout_weight="1"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#c8e0ec"
+        android:padding="25px">
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/input_text"
+            android:layout_weight="1"
+            android:background="@drawable/send_text"
+            android:layout_marginLeft="20px"
+            android:layout_marginRight="20px"
+            android:padding="30px"
+            android:shadowColor="#738e9d"
+            android:layout_gravity="bottom"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="bottom">
+        <Button
+            android:layout_width="80dp"
+            android:layout_height="40dp"
+            android:id="@+id/send"
+            android:text="发送"
+            android:background="@drawable/send_btn"
+            android:layout_gravity="bottom"
+            android:layout_marginRight="20dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginBottom="1dp"/>
+
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

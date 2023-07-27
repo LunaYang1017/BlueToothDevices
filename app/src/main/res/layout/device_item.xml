@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/device_item_bg">
+
+    <LinearLayout
+        android:layout_width="150px"
+        android:layout_height="180px"
+        android:orientation="vertical"
+        android:padding="20px">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="80px"
+            android:text="名称:"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="70px"
+            android:text="地址:"
+            android:layout_marginTop="20px"
+            android:layout_weight="1" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="180px"
+        android:orientation="vertical"
+        android:padding="10px">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="95px"
+            android:id="@+id/textView1"
+            android:text="letter"
+            android:layout_weight="1"
+            android:textColor="#000"
+            android:textSize="55px"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="60px"
+            android:id="@+id/textView2"
+            android:text="letter"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+
+</LinearLayout>
