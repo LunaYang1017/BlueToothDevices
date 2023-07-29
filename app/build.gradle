@@ -26,6 +26,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    /*buildFeatures {//https://blog.csdn.net/qq_38436214/article/details/128574336里使用了binding功能
+        viewBinding true
+        dataBinding true
+    }*/
+
 }
 
 dependencies {

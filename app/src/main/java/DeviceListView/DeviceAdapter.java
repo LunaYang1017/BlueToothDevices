@@ -11,24 +11,22 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.example.frombuttontoconnect.DeviceListActivity;
 import com.example.frombuttontoconnect.R;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class DeviceAdapter extends ArrayAdapter<DeviceClass> {
+public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
 
-    //private ArrayList mbondDevice,mfindDevice;
+    private List<DeviceClass> mfindDevice;
     private int resourceId;
 
     public DeviceAdapter(@NonNull Context context,  int textViewResourceId, @NonNull List<DeviceClass> objects) {
-        super(context,  textViewResourceId, objects);
+        super(context,  textViewResourceId);
         resourceId=textViewResourceId;
     }
 
 
-    static class ViewHolder{
+    public  static class ViewHolder  {
         public TextView textView1,textView2;
     }
 
