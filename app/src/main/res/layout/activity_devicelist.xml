@@ -29,6 +29,7 @@
         android:layout_marginTop="5dp"
         android:text="搜索设备"
         android:textSize="20sp"
+        android:onClick="Click_SearchDevice"
         android:background="@drawable/search_btn"/>
     <TextView
         android:layout_width="match_parent"
