@@ -19,7 +19,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.Message;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -35,6 +35,8 @@ import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
 import BlueToothPackage.BluetoothController;
 import DeviceListView.DeviceAdapter;
@@ -83,14 +85,6 @@ public class DeviceListActivity extends AppCompatActivity {
             //findDevice(view);
             assert (mBluetoothAdapter != null);
             mBluetoothAdapter.startDiscovery();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if ((hasPermission(Manifest.permission.BLUETOOTH_SCAN))&&(mBluetoothAdapter != null)){
-                    //扫描或者停止扫描
-                   /* if (isScanning) stopScan();
-                    else*/
-                        startScan();
-                }
-            }
 
         });
 
@@ -104,7 +98,7 @@ public class DeviceListActivity extends AppCompatActivity {
 
         mfindDeviceAdapter=new DeviceAdapter(DeviceListActivity.this,R.layout.device_item,mfindDeviceList);
         ListView listViewfind=findViewById(R.id.listview2);
-        listViewfind.setAdapter(mbondDeviceAdapter);
+        listViewfind.setAdapter(mfindDeviceAdapter);
        // mfindDeviceList.clear();
         mfindDeviceAdapter.notifyDataSetChanged();
     }
@@ -165,14 +159,14 @@ public class DeviceListActivity extends AppCompatActivity {
                     }
         else enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
         //请求BLUETOOTH_SCAN权限意图
-      requestBluetoothScan = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+      /*requestBluetoothScan = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
             if (result) {
                 //进行扫描
                 startScan();
             } else {
                 showToast("Android12中未获取此权限，则无法扫描蓝牙。");
             }
-        });
+        });*/
 
     }
 
@@ -185,26 +179,6 @@ public class DeviceListActivity extends AppCompatActivity {
            mfindDeviceAdapter.notifyDataSetChanged();
         }
     };
-    private void startScan() {
-        if (!isScanning) {
-            scanner.startScan(scanCallback);
-            isScanning = true;
-            showToast("start扫描");
-        }
-    }
-
-    private void stopScan() {
-        if (isScanning) {
-            scanner.stopScan(scanCallback);
-            isScanning = false;
-            showToast("stop扫描");
-        }
-    }
-
-
-
-
-
 
 
 
@@ -241,12 +215,13 @@ private void init_Filter(){
             if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
                 //setSupportProgressBarIndeterminateVisibility(true);
                 change_Button_Text("搜索中...","DISABLE");
-                //mfindDeviceList.clear();
+                mfindDeviceList.clear();
                 mfindDeviceAdapter.notifyDataSetChanged();
             }
             else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
                 setProgressBarIndeterminateVisibility(false);
                 change_Button_Text("搜索设备","ENABLE");
+                mfindDeviceAdapter.notifyDataSetChanged();
 
             }
             //查找设备
@@ -262,9 +237,11 @@ private void init_Filter(){
                 int scanMode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE,0);
                 if (scanMode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE){
                     setProgressBarIndeterminateVisibility(true);
+                    mfindDeviceAdapter.notifyDataSetChanged();
                 }
                 else {
                     setProgressBarIndeterminateVisibility(false);
+                    mfindDeviceAdapter.notifyDataSetChanged();
                 }
             }
             else if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
@@ -281,6 +258,7 @@ private void init_Filter(){
                     showToast("未绑定" + remoteDecive.getName());
                 }
             }
+           // mfindDeviceAdapter.notifyDataSetChanged();
         }
     };
 
@@ -298,13 +276,6 @@ private void init_Filter(){
 
 /*
 * */
-
-
-
-
-
-
-
 
 
 
