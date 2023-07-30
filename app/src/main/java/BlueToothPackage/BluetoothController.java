@@ -9,6 +9,8 @@ import android.content.Intent;
 import java.util.ArrayList;
 import java.util.List;
 
+import DeviceListView.DeviceAdapter;
+
 public class BluetoothController {
     private BluetoothAdapter mAdapter;
 
@@ -30,10 +32,6 @@ public class BluetoothController {
 
     public List<BluetoothDevice> getBondedDeviceList(){
         return new ArrayList<>(mAdapter.getBondedDevices());
-    }
-
-    public List<BluetoothDevice> getFindDeviceList(){
-        return null;
     }
 }
 

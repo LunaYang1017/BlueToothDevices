@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -45,37 +46,67 @@ public class DeviceListActivity extends AppCompatActivity {
     //private Handler handler = new Handler();
     private ActivityResultLauncher<Intent> enableBluetooth;//打开蓝牙意图
     private ActivityResultLauncher<String> requestBluetoothConnect; //请求蓝牙连接权限意图
+    private ActivityResultLauncher<String> requestBluetoothScan;    //请求蓝牙扫描权限意图
 
+    private BluetoothLeScanner scanner;//扫描者
+    boolean isScanning;//是否正在扫描
     private Button SearchDevicebtn;
 
 
    // private BluetoothController mbluetoothController=new BluetoothController();
     private Toast mToast;
+    private BluetoothAdapter mBluetoothAdapter;//系统蓝牙适配器
+    private BluetoothController mbluetoothController;
+    private DeviceAdapter mfindDeviceAdapter,mbondDeviceAdapter;//接受找到的和已连接的设备适配器
+    /*private List<BluetoothDevice> mfindDeviceList= new ArrayList<>();//所有未绑定
+    private List<BluetoothDevice> mbondedDeviceList= new ArrayList<>();//所有已绑定*/
 
-
+    private List<DeviceClass> mfindDeviceList= new ArrayList<>();//所有未绑定
+    private List<DeviceClass> mbondedDeviceList= new ArrayList<>();//所有已绑定
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {//该页面里面执行的程序
-        registerIntent();//表示一下打开蓝牙没有,顺便请求连接
+        registerIntent();//蓝牙连接权限，位置权限，版本兼容问题
         super.onCreate(savedInstanceState);//自动生成的
         setContentView(R.layout.activity_devicelist);//当前页面使用的layout
-
         SearchDevicebtn=findViewById(R.id.btn_SearchDevice);
-        initView();//弹窗打开蓝牙
+
         //registerBluetoothReceiver();//软件运行时弹窗申请打开蓝牙
 
         Init_listView();//初始化展示列表
-        init_Filter();
-        //Click_SearchDevice();
-        //startScan();
-       /* SearchDevicebtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        init_Filter();//初始化广播
+        //show_bondDeviceList();
+        //doDiscovery();
 
-                //Click_SearchDevice();
+        SearchDevicebtn.setOnClickListener(view -> {
+            //doDiscovery();
+            //findDevice(view);
+            assert (mBluetoothAdapter != null);
+            mBluetoothAdapter.startDiscovery();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if ((hasPermission(Manifest.permission.BLUETOOTH_SCAN))&&(mBluetoothAdapter != null)){
+                    //扫描或者停止扫描
+                   /* if (isScanning) stopScan();
+                    else*/
+                        startScan();
+                }
             }
-        });*/
 
+        });
+
+    }
+
+    private void Init_listView() {
+        mbondDeviceAdapter=new DeviceAdapter(DeviceListActivity.this,R.layout.device_item,mbondedDeviceList);
+        ListView listViewBonded=findViewById(R.id.listview1);
+        listViewBonded.setAdapter(mbondDeviceAdapter);
+        mbondDeviceAdapter.notifyDataSetChanged();
+
+        mfindDeviceAdapter=new DeviceAdapter(DeviceListActivity.this,R.layout.device_item,mfindDeviceList);
+        ListView listViewfind=findViewById(R.id.listview2);
+        listViewfind.setAdapter(mbondDeviceAdapter);
+       // mfindDeviceList.clear();
+        mfindDeviceAdapter.notifyDataSetChanged();
     }
 
     private void registerIntent(){//oncreat以前的函数
@@ -85,6 +116,7 @@ public class DeviceListActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},1);
             }
         }
+
         //打开蓝牙意图
         enableBluetooth=registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),result -> {
             if (result.getResultCode()==Activity.RESULT_OK){
@@ -107,8 +139,33 @@ public class DeviceListActivity extends AppCompatActivity {
                 showToast("Android12中未获取此权限，无法打开蓝牙。");
             }
         });
+       // mfindDeviceList.clear();//清空当前列表
+
+
+                    //扫描者获取系统蓝牙适配器
+        if (isOpenBluetooth()) {
+                        BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+                        mBluetoothAdapter = manager.getAdapter();
+                        scanner = mBluetoothAdapter.getBluetoothLeScanner();//以上三行获取系统蓝牙适配器，扫描者
+                        showToast("蓝牙已打开");
+                        return;
+                    }
+
+                    //是Android12
+        if (isAndroid12()) {
+                        //检查是否有BLUETOOTH_CONNECT权限
+                        if (hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+                            enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+
+                        }
+                        else {
+                            //请求权限
+                            requestBluetoothConnect.launch(Manifest.permission.BLUETOOTH_CONNECT);
+                        }
+                    }
+        else enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
         //请求BLUETOOTH_SCAN权限意图
-        requestBluetoothScan = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+      requestBluetoothScan = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
             if (result) {
                 //进行扫描
                 startScan();
@@ -116,49 +173,90 @@ public class DeviceListActivity extends AppCompatActivity {
                 showToast("Android12中未获取此权限，则无法扫描蓝牙。");
             }
         });
+
     }
-/*
+
+    //扫描结果回调
+    private final ScanCallback scanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            BluetoothDevice device = result.getDevice();
+           showToast(device.getAddress());
+           mfindDeviceAdapter.notifyDataSetChanged();
+        }
+    };
+    private void startScan() {
+        if (!isScanning) {
+            scanner.startScan(scanCallback);
+            isScanning = true;
+            showToast("start扫描");
+        }
+    }
+
+    private void stopScan() {
+        if (isScanning) {
+            scanner.stopScan(scanCallback);
+            isScanning = false;
+            showToast("stop扫描");
+        }
+    }
+
+
+
+
+
+
+
+
+    /*
 * 广播版扫描方式*/
 //开启广播
 private void init_Filter(){
-    IntentFilter filter = new IntentFilter();
-    //开始查找
+    IntentFilter filter = new IntentFilter();//创建了一个广播频道，要收听的是下面这些
+
+    //频道1.开始查找
     filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
     //结束查找
-    filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+   filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
     //查找设备
     filter.addAction(BluetoothDevice.ACTION_FOUND);
     //设备扫描模式改变
     filter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
     //绑定状态
     filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+
+
     registerReceiver(receiver, filter);
+    this.registerReceiver(receiver,filter);//注册广播
+
     showToast("开启广播完毕");
 }
 
-
     //广播内容
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
+    BroadcastReceiver receiver = new BroadcastReceiver() {//1.创建了一个广播接受者，用来接受状态
+        @SuppressLint("MissingPermission")
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
                 //setSupportProgressBarIndeterminateVisibility(true);
                 change_Button_Text("搜索中...","DISABLE");
-                mfindDeviceList.clear();
-                mAdapter.notifyDataSetChanged();
+                //mfindDeviceList.clear();
+                mfindDeviceAdapter.notifyDataSetChanged();
             }
             else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
                 setProgressBarIndeterminateVisibility(false);
                 change_Button_Text("搜索设备","ENABLE");
+
             }
             //查找设备
             else if(BluetoothDevice.ACTION_FOUND.equals(action)){
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                change_Button_Text("搜索中...","DISABLE");
+                change_Button_Text("找到一个设备...","DISABLE");
                 //查找到一个设备就添加到列表类中
                 mfindDeviceList.add(new DeviceClass(device.getName(),device.getAddress()));
-                mAdapter.notifyDataSetChanged();//刷新列表适配器，将内容显示出来
+                mfindDeviceAdapter.notifyDataSetChanged();
+
             }
             else if(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED.equals(action)){
                 int scanMode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE,0);
@@ -185,155 +283,29 @@ private void init_Filter(){
             }
         }
     };
-/*
-* */
-    private void initView() {//oncreat以后的函数
-    SearchDevicebtn.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            //蓝牙是否已打开
-            if (isOpenBluetooth()) {
-                BluetoothManager manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-                mBluetoothAdapter = manager.getAdapter();
-                scanner = mBluetoothAdapter.getBluetoothLeScanner();//以上三行获取系统蓝牙适配器，扫描者
-                showToast("蓝牙已打开");
-                return;
-            }
-            //是Android12
 
-            if (isAndroid12()) {
-                //检查是否有BLUETOOTH_CONNECT权限
-                if (hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-                    //打开蓝牙
-                    enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
-                    if (isScanning){stopScan();showToast("停止扫描");}
-                    else {startScan();showToast("开始扫描");}
-                }
-                else {
-                    //请求权限
-                    requestBluetoothConnect.launch(Manifest.permission.BLUETOOTH_CONNECT);
-                }
-            }
-            else enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+
+    @SuppressLint("MissingPermission")
+    private void show_bondDeviceList(){
+        mbondedDeviceList.clear();
+        @SuppressLint("MissingPermission") List<BluetoothDevice> bondDevices = new ArrayList<>(mBluetoothAdapter.getBondedDevices());//mbluetoothController.getBondedDeviceList();//查找已绑定设备
+        for(int i=0;i<bondDevices.size();i++){
+            mbondedDeviceList.add(new DeviceClass(bondDevices.get(i).getName(),bondDevices.get(i).getAddress()));
         }
-    });
+        mbondDeviceAdapter.notifyDataSetChanged();
     }
 
 
 /*
-* 蓝牙扫描函数
 * */
 
-    private BluetoothAdapter mBluetoothAdapter;//系统蓝牙适配器
-    private BluetoothLeScanner scanner;//扫描者
-    boolean isScanning = false;//是否正在扫描
 
 
 
 
 
-    //扫描结果回调,这个函数别用，会闪退，有空指针问题
-    private final ScanCallback scanCallback=new ScanCallback() {
-        @SuppressLint("MissingPermission")
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-            //super.onScanResult(callbackType, result);
-            /*BluetoothDevice get;
-            get= result.getDevice();//类型转换为BluetoothDevice*/
-            addDeviceList(new DeviceClass(device.getName(),device.getAddress()));
-        }
-    };
 
 
-/*
-* 执行扫描
-* */
-
-    private ActivityResultLauncher<String> requestBluetoothScan;    //请求蓝牙扫描权限意图
-
-
-
-
-    /*public void Click_SearchDevice(){//按钮点击事件
-        /*if (isAndroid12()) {
-            if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-                requestBluetoothConnect.launch(Manifest.permission.BLUETOOTH_CONNECT);
-                return;
-            }
-            if (hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-                //扫描或者停止扫描
-                if (isScanning) {stopScan();change_Button_Text("搜索设备","ENABLE");}
-                else {startScan();change_Button_Text("停止扫描","DISABLE");}
-            } else {
-                //请求权限
-                requestBluetoothScan.launch(Manifest.permission.BLUETOOTH_SCAN);
-            }
-        }
-
-        else {
-            startScan();change_Button_Text("停止扫描","DISABLE");
-        }
-
-        if (isScanning) {stopScan();change_Button_Text("搜索设备","ENABLE");}
-        else {startScan();change_Button_Text("停止扫描","DISABLE");}
-        mAdapter.notifyDataSetChanged();
-
-    }*/
-
-    //开始和结束扫描的函数
-    private void startScan() {
-        if (!isScanning) {
-            scanner.startScan(scanCallback);
-            isScanning = true;
-            showToast("start扫描");
-        }
-    }
-
-    private void stopScan() {
-        if (isScanning) {
-            scanner.stopScan(scanCallback);
-            isScanning = false;
-            showToast("stop扫描");
-        }
-    }
-
-/*展示扫描结果
-* */
-    private List<DeviceClass> mfindDeviceList= new ArrayList<>();//所有未绑定
-
-    private DeviceAdapter mAdapter;
-    //初始化列表，适配器的加载
-    public void Init_listView(){
-       mAdapter = new  DeviceAdapter(DeviceListActivity.this, R.layout.device_item, mfindDeviceList);
-        ListView listView2 = findViewById(R.id.listview2);
-        listView2.setAdapter(mAdapter);
-        mAdapter.notifyDataSetChanged();//刷新列表适配器，将内容显示出来
-        showToast("列表初始化完毕");
-    }
-
-    private int findDeviceList(DeviceClass scanedDevice, List<DeviceClass> deviceList){
-        int list=0;
-        for(DeviceClass myDevice:deviceList){
-            if (myDevice.getbAdress().equals(scanedDevice.getbAdress())) {
-                return list; }
-                list+=1;
-
-        }
-        return -1;
-    }
-
-    private void addDeviceList(DeviceClass device){
-        int list=findDeviceList(device,mfindDeviceList);
-        if (list==-1){
-            mfindDeviceList.add(new DeviceClass(device.getbName(),device.getbAdress()));
-            mAdapter.notifyDataSetChanged();//刷新列表适配器，将内容显示出来
-        }
-        else {
-           // mfindDeviceList.get(list).setRssi(device.getRssi());
-            mAdapter.notifyDataSetChanged();//刷新列表适配器，将内容显示出来
-        }
-    }
 
 
     //点击按键搜索后按键的变化
@@ -353,28 +325,6 @@ private void init_Filter(){
     }
 
 
-    //点击设备后执行的函数
-   /* private AdapterView.OnItemClickListener connectDevice =new AdapterView.OnItemClickListener(){
-        @Override
-        public void onItemClick(AdapterView<?> adapterView, View view, int i, long l){
-
-        }
-    };*/
-
-    //点击开始查找蓝牙设备
-    /*public View findDevice(View view){
-        mbluetoothController.findDevice();
-        return view;
-    }*/
-   /* //查找已绑定的蓝牙设备
-    private void show_bondDeviceList(){
-        mbondDeviceList.clear();
-        List<BluetoothDevice> bondDevices = mbluetoothController.getBondedDeviceList();//查找已绑定设备
-        for(int i=0;i<bondDevices.size();i++){
-            mbondDeviceList.add(new DeviceClass(bondDevices.get(i).getName(),bondDevices.get(i).getAddress()));
-        }
-        mAdapter1.notifyDataSetChanged();
-    }*/
 
 
 /*
@@ -385,10 +335,7 @@ private void init_Filter(){
     private boolean hasPermission(String permission) {
         return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
     }
-    //设置toast的标准格式
-   /* private void showToast(CharSequence msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }*/
+
 
     private void showToast(String text){//原本使用的toast
         if(mToast == null){

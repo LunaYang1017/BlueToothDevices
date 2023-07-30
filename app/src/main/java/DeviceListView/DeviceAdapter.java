@@ -1,12 +1,13 @@
 package DeviceListView;
 
 
+import android.bluetooth.BluetoothClass;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,38 +18,53 @@ import java.util.List;
 
 public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
 
-    private List<DeviceClass> mfindDevice;
+
+
+    /*private List<BluetoothClass>mBondedDevice;
+    * private List<BluetoothClass>mfindDeviceList;*/
+
     private int resourceId;
 
-    public DeviceAdapter(@NonNull Context context,  int textViewResourceId, @NonNull List<DeviceClass> objects) {
-        super(context,  textViewResourceId);
+    public DeviceAdapter(@NonNull Context context, int textViewResourceId, @NonNull List<DeviceClass> objects) {
+        super(context, textViewResourceId, objects);
         resourceId=textViewResourceId;
     }
 
+   /* public DeviceAdapter(@NonNull Context context,  int textViewResourceId, @NonNull List<BluetoothDevice> objects) {
+        super(context,  textViewResourceId);
+        resourceId=textViewResourceId;
+    }*/
 
-    public  static class ViewHolder  {
+
+    /*public  static class ViewHolder  {
         public TextView textView1,textView2;
-    }
+    }*/
 
-    public View getView(int position, View convertView, ViewGroup parent){
+   public View getView(int position, View convertView, ViewGroup parent){
+        //BluetoothDevice device = getItem(position);
         DeviceClass device = getItem(position);
-        ViewHolder holder=null;
+        //ViewHolder holder=null;
+       View view=convertView;
 
-        if (convertView == null) {//如果可复用的视图是空的，就新建一个视图
+        if (view == null) {//如果可复用的视图是空的，就新建一个视图
 
-            convertView = LayoutInflater.from(getContext()).inflate(resourceId, parent, false);//context上下文，语境，环境：）
-            holder=new ViewHolder();                                                                        //上一行除了最后一个括号，前面都不用改，false不知道什么意思
+            view = LayoutInflater.from(getContext()).inflate(resourceId, parent, false);//context上下文，语境，环境：）
+           /* holder=new ViewHolder();                                                                        //上一行除了最后一个括号，前面都不用改，false不知道什么意思
             holder.textView1=convertView.findViewById(R.id.textView1);
             holder.textView2=convertView.findViewById(R.id.textView2);
-            convertView.setTag(holder);
+            convertView.setTag(holder);*/
         }
-        else {
-            holder= (ViewHolder) convertView.getTag();}
+       // else {
+            /*holder= (ViewHolder) convertView.getTag();}
             //以下是赋值
             holder.textView1.setText(device.getbName());
-            holder.textView2.setText(device.getbAdress());
+            holder.textView2.setText(device.getbAddress());*/
+       TextView textView1 = (TextView) view.findViewById(R.id.textView1);
+       TextView textView2 = (TextView) view.findViewById(R.id.textView2);
+       textView1.setText(device.getbName());
+       textView2.setText(device.getbAddress());
 
-        return convertView;//一个当前生成的视图
+        return view;//一个当前生成的视图
     }
     /*参数说明：by chatGPT
 
