@@ -1,5 +1,6 @@
 package BlueToothPackage;
 
+//创建请求访问通道并开启端口监听（服务端）
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
@@ -34,15 +35,15 @@ public class AcceptThread extends Thread{
         //持续监听，直到出现异常或返回socket
         while (true){
             try {
-                mHandler.sendEmptyMessage(Constant.MSG_START_LISTENING);
-                socket = mmServerSocket.accept();
+                mHandler.sendEmptyMessage(Constant.MSG_START_LISTENING);//告诉主线程我一直在听
+                socket = mmServerSocket.accept();//accept处于阻塞状态，直到收到客户端请求，并返回给客户端一个BluetoothSocket对象,也就是聊天通道的建立
             } catch (IOException e) {
                 mHandler.sendMessage(mHandler.obtainMessage(Constant.MSG_ERROR, e));
                 break;
             }
 
             // 如果一个连接被接受
-            if (socket != null) {
+            if (socket != null) {//被连接上了
                 // 在单独的线程中完成管理连接的工作
                 manageConnectedSocket(socket);
                 try {
@@ -61,9 +62,10 @@ public class AcceptThread extends Thread{
     private void manageConnectedSocket(BluetoothSocket socket) {
         //只支持同时处理一个连接
         if( mConnectedThread != null) {
-            mConnectedThread.cancel();
+            mConnectedThread.cancel();//连上就关闭连接线程
         }
-        mHandler.sendEmptyMessage(Constant.MSG_GOT_A_CLINET);
+        mHandler.sendEmptyMessage(Constant.MSG_GOT_A_CLINET);//向handler说有人连上了
+        //创建一个聊天线程
         mConnectedThread = new ConnectedThread(socket, mHandler);
         mConnectedThread.start();
     }
@@ -76,6 +78,7 @@ public class AcceptThread extends Thread{
         } catch (IOException e) { }
     }
 
+    //发送信息的实现
     public void sendData(byte[] data) {
         if( mConnectedThread!=null){
             mConnectedThread.write(data);

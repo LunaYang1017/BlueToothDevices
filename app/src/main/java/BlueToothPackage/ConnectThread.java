@@ -1,5 +1,6 @@
 package BlueToothPackage;
 
+//发起聊天请求并建立通信通道（客户端）
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -27,9 +28,9 @@ public class ConnectThread extends Thread{
         } catch (IOException e) { }
         mmSocket = tmp;
     }
-
+    //由于请求过程处于阻塞状态，所以整个请求过程得用线程
     public void run() {
-        // 搜索占用资源大，关掉提高速度
+        // 关闭蓝牙的搜索功能，避免请求过程出现数据错误
         mBluetoothAdapter.cancelDiscovery();
 
         try {
@@ -47,13 +48,16 @@ public class ConnectThread extends Thread{
         manageConnectedSocket(mmSocket);
     }
 
+    //开门成功后就开始下一个任务
     private void manageConnectedSocket(BluetoothSocket mmSocket) {
+        //发送连接成功提示文字
         mHandler.sendEmptyMessage(Constant.MSG_CONNECTED_TO_SERVER);
+        //创建连接后的处理线程，即通信线程
         mConnectedThread = new ConnectedThread(mmSocket,mHandler);
         mConnectedThread.start();
     }
 
-    //取消当前连接
+    //取消当前连接并关闭socket
     public void cancel() {
         try {
             mmSocket.close();

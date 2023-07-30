@@ -1,5 +1,8 @@
 package BlueToothPackage;
 
+//数据交互与断开（服务端与客户端的聊天实现）
+/*服务端和客户端都分别开启一个聊天线程，聊天线程的主要功能其实就一个——一直执行read()。
+也就是处于监听状态，等待另一方write()*/
 import android.bluetooth.BluetoothSocket;
 import android.os.Message;
 import android.util.Log;
@@ -25,8 +28,8 @@ public class ConnectedThread extends Thread{
         mHandler = handler;
 // 使用临时对象获取输入和输出流，因为成员流是最终的
         try {
-            tmpIn = socket.getInputStream();
-            tmpOut = socket.getOutputStream();
+            tmpIn = socket.getInputStream();//输入流
+            tmpOut = socket.getOutputStream();//输出流
         } catch (IOException e) { }
 
         mmInStream = tmpIn;
@@ -54,13 +57,14 @@ public class ConnectedThread extends Thread{
         }
     }
 
-
+    //在main中调用此函数，将数据发送到远端设备中
     public void write(byte[] bytes) {
         try {
             mmOutStream.write(bytes);
         } catch (IOException e) { }
     }
 
+    //在main中调用此函数，断开连接
     public void cancel() {
         try {
             mmSocket.close();

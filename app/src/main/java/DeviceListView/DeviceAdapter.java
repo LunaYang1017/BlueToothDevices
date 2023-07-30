@@ -1,6 +1,7 @@
 package DeviceListView;
 
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
@@ -16,7 +17,7 @@ import com.example.frombuttontoconnect.R;
 
 import java.util.List;
 
-public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
+public class DeviceAdapter extends  ArrayAdapter<BluetoothDevice>{//
 
 
 
@@ -25,8 +26,8 @@ public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
 
     private int resourceId;
 
-    public DeviceAdapter(@NonNull Context context, int textViewResourceId, @NonNull List<DeviceClass> objects) {
-        super(context, textViewResourceId, objects);
+    public DeviceAdapter(@NonNull Context context, int textViewResourceId, @NonNull List<BluetoothDevice> objects) {
+        super(context, textViewResourceId,objects);
         resourceId=textViewResourceId;
     }
 
@@ -40,9 +41,10 @@ public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
         public TextView textView1,textView2;
     }*/
 
+
    public View getView(int position, View convertView, ViewGroup parent){
         //BluetoothDevice device = getItem(position);
-        DeviceClass device = getItem(position);
+        BluetoothDevice device = getItem(position);
         //ViewHolder holder=null;
        View view=convertView;
 
@@ -61,8 +63,8 @@ public class DeviceAdapter extends  ArrayAdapter<DeviceClass>{//
             holder.textView2.setText(device.getbAddress());*/
        TextView textView1 = (TextView) view.findViewById(R.id.textView1);
        TextView textView2 = (TextView) view.findViewById(R.id.textView2);
-       textView1.setText(device.getbName());
-       textView2.setText(device.getbAddress());
+       textView1.setText(device.getName());
+       textView2.setText(device.getAddress());
 
         return view;//一个当前生成的视图
     }

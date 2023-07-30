@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 
 import android.bluetooth.BluetoothAdapter;
+
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -19,10 +20,12 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Message;
+
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -30,17 +33,14 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
 
-import BlueToothPackage.BluetoothController;
 import DeviceListView.DeviceAdapter;
-import DeviceListView.DeviceClass;
+//import DeviceListView.DeviceClass;
 
 public class DeviceListActivity extends AppCompatActivity {
 
@@ -58,13 +58,12 @@ public class DeviceListActivity extends AppCompatActivity {
    // private BluetoothController mbluetoothController=new BluetoothController();
     private Toast mToast;
     private BluetoothAdapter mBluetoothAdapter;//系统蓝牙适配器
-    private BluetoothController mbluetoothController;
-    private DeviceAdapter mfindDeviceAdapter,mbondDeviceAdapter;//接受找到的和已连接的设备适配器
-    /*private List<BluetoothDevice> mfindDeviceList= new ArrayList<>();//所有未绑定
-    private List<BluetoothDevice> mbondedDeviceList= new ArrayList<>();//所有已绑定*/
 
-    private List<DeviceClass> mfindDeviceList= new ArrayList<>();//所有未绑定
-    private List<DeviceClass> mbondedDeviceList= new ArrayList<>();//所有已绑定
+    private DeviceAdapter mfindDeviceAdapter,mbondDeviceAdapter;//接受找到的和已连接的设备适配器
+
+
+    private List<BluetoothDevice> mfindDeviceList= new ArrayList<>();//所有未绑定
+    private List<BluetoothDevice> mbondedDeviceList= new ArrayList<>();//所有已绑定
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {//该页面里面执行的程序
@@ -73,12 +72,10 @@ public class DeviceListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_devicelist);//当前页面使用的layout
         SearchDevicebtn=findViewById(R.id.btn_SearchDevice);
 
-        //registerBluetoothReceiver();//软件运行时弹窗申请打开蓝牙
 
         Init_listView();//初始化展示列表
         init_Filter();//初始化广播
-        //show_bondDeviceList();
-        //doDiscovery();
+        show_bondDeviceList();
 
         SearchDevicebtn.setOnClickListener(view -> {
             //doDiscovery();
@@ -99,6 +96,7 @@ public class DeviceListActivity extends AppCompatActivity {
         mfindDeviceAdapter=new DeviceAdapter(DeviceListActivity.this,R.layout.device_item,mfindDeviceList);
         ListView listViewfind=findViewById(R.id.listview2);
         listViewfind.setAdapter(mfindDeviceAdapter);
+        listViewfind.setOnItemClickListener(mConnectDeviceClickLisrener);
        // mfindDeviceList.clear();
         mfindDeviceAdapter.notifyDataSetChanged();
     }
@@ -158,28 +156,8 @@ public class DeviceListActivity extends AppCompatActivity {
                         }
                     }
         else enableBluetooth.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
-        //请求BLUETOOTH_SCAN权限意图
-      /*requestBluetoothScan = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
-            if (result) {
-                //进行扫描
-                startScan();
-            } else {
-                showToast("Android12中未获取此权限，则无法扫描蓝牙。");
-            }
-        });*/
 
     }
-
-    //扫描结果回调
-    private final ScanCallback scanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-           showToast(device.getAddress());
-           mfindDeviceAdapter.notifyDataSetChanged();
-        }
-    };
-
 
 
     /*
@@ -229,7 +207,7 @@ private void init_Filter(){
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 change_Button_Text("找到一个设备...","DISABLE");
                 //查找到一个设备就添加到列表类中
-                mfindDeviceList.add(new DeviceClass(device.getName(),device.getAddress()));
+                mfindDeviceList.add(device);
                 mfindDeviceAdapter.notifyDataSetChanged();
 
             }
@@ -266,10 +244,11 @@ private void init_Filter(){
     @SuppressLint("MissingPermission")
     private void show_bondDeviceList(){
         mbondedDeviceList.clear();
-        @SuppressLint("MissingPermission") List<BluetoothDevice> bondDevices = new ArrayList<>(mBluetoothAdapter.getBondedDevices());//mbluetoothController.getBondedDeviceList();//查找已绑定设备
-        for(int i=0;i<bondDevices.size();i++){
-            mbondedDeviceList.add(new DeviceClass(bondDevices.get(i).getName(),bondDevices.get(i).getAddress()));
-        }
+       // @SuppressLint("MissingPermission") List<BluetoothDevice> bondDevices
+        mbondedDeviceList  = new ArrayList<>(mBluetoothAdapter.getBondedDevices());//mbluetoothController.getBondedDeviceList();//查找已绑定设备
+        /*for(int i=0;i<bondDevices.size();i++){
+            mbondedDeviceList.add(BluetoothDevice);
+        }*/
         mbondDeviceAdapter.notifyDataSetChanged();
     }
 
@@ -336,14 +315,20 @@ private void init_Filter(){
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
     }
 
-
+    public static String EXTRA_DEVICE_ADDRESS = "device_address";  //Mac地址
     //点击设备后执行的函数
-   /* private final AdapterView.OnItemClickListener toMainActivity = (adapterView, view, i, l) -> {
-        //Main2Activity是第二个界面的，运行会出错，为了展现目前的效果，对这里先改为注释
-        Intent intent = new Intent(DeviceListActivity.this,MainActivity.class);
-        startActivity(intent);
+    @SuppressLint("MissingPermission")
+    private final AdapterView.OnItemClickListener mConnectDeviceClickLisrener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+            mBluetoothAdapter.cancelDiscovery();
+            BluetoothDevice device=mfindDeviceList.get(i);
+            device.createBond();
 
-    };*/
+        }
+    };
+
+
 }
 
 

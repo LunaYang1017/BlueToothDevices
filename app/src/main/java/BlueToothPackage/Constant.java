@@ -14,4 +14,6 @@ public class Constant {
     public static final int MSG_GOT_DATA=5;//获取到数据
 
     public static final int MSG_ERROR=-1;//出错
+
+
 }
